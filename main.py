@@ -1,0 +1,264 @@
+# обрааботчики команд бота
+from aiogram import Dispatcher, types
+from aiogram.utils import executor
+# from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.dispatcher.filters import Text
+from aiogram.dispatcher import FSMContext
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from basedata import start_base, register_name, register_tg_link, register_about, register_tg_bio, register_photos_ids, get_user_data, user_start, search_in_basedata, sleep_update, register_gender
+from texts import HELP_START
+from keyboards import inlinekeyboardgo, inlinekeyboardlikes, keboardgender, inlinekeyboardlikes1
+import keyboards
+from config import bot
+import defs
+import debug
+
+
+storage = MemoryStorage()
+dp = Dispatcher(
+    bot=bot,
+    storage=storage
+                )
+# dp.middleware.setup(LoggingMiddleware())
+
+
+# Класс хранения состояний
+class ClientStorage(StatesGroup):
+    start = State()
+    name = State()
+    gender = State()
+    about = State()
+    photos = State()
+    photos_add = State()
+    register_name = State()
+    register_about = State()
+    register_photos = State()
+
+
+def media_photo_id(photo_ids):
+    media = [types.InputMediaPhoto(media=photo_ids[i], caption=f"Photo {i}") for i in range(len(photo_ids))]
+    return media
+
+
+async def send_media(chat_id, user_data):
+    if len(user_data.photo_ids) <= 1:
+        await bot.send_photo(chat_id, user_data.photo_ids[0], caption="Единственная фотография")
+    else:
+        await bot.send_media_group(chat_id, media=media_photo_id(user_data.photo_ids))
+
+
+def string_about_user(user_data): 
+    return f"""Меня зовут {user_data.name}\nО себе {user_data.about}"""
+
+
+# Обработчик команды /start
+@dp.message_handler(commands=['start'], state=None)
+async def start(message: types.Message) -> None:
+    debug.debug()
+    await ClientStorage.start.set()
+    await ClientStorage.next()
+    await message.answer("Заполните вашу анкету. Как вас зовут?")
+    await user_start(message.from_user.id)
+
+
+# Обработка команды /help
+@dp.message_handler(commands=['help'])
+async def help(message: types.Message) -> None:
+    debug.debug()
+    await message.answer(HELP_START, parse_mode="HTML")
+
+
+# Обработчик ответа на имя
+@dp.message_handler(state=ClientStorage.name)
+async def text_name_answer(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    if await state.get_state() == "ClientStorage:name":
+        user_id = message.from_user.id
+        name = message.text
+        # Записываем имя пользователя в базу данных
+        # cursor = conn.cursor()
+        await register_name(user_id, name)
+        await register_tg_link(user_id, message.from_user.username)
+        await ClientStorage.next()
+        gender = await defs.check_gender(name) 
+        if gender == 2:
+            await message.answer(f"Спасибо {name} Вы заполнили! Теперь расскажите пожалуйста какой Ваш пол", reply_markup=keboardgender)
+        else:
+            await ClientStorage.next()
+            await register_gender(user_id, gender)
+            await message.answer(f"Спасибо {name} Вы заполнили! Теперь расскажите пожалуйста о том кого Вы хотите найти и о себе")
+
+
+# Обработчик ответа на пол
+@dp.message_handler(state=ClientStorage.gender)
+async def gender_answer(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    user_id = message.from_user.id
+    text = message.text.lower()
+    if text == "я парень":
+        gender = 1
+    elif text == "я девушка":
+        gender = 0
+    else:
+        await message.answer("Введите пожалуйста корректное имя пола", reply_markup=keboardgender)
+        return
+    await register_gender(user_id, gender)
+    await ClientStorage.next()
+    await message.answer("Спасибо Вы заполнили! Теперь расскажите пожалуйста о том кого Вы хотите найти и о себе")
+
+
+# Обработчик ответа на имя
+@dp.message_handler(state=ClientStorage.about)
+async def text_about_answer(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    if await state.get_state() == "ClientStorage:about":
+        user_id = message.from_user.id
+        about_text = message.text
+        # Записываем имя пользователя в базу данных
+        # cursor = conn.cursor()
+        await register_about(user_id, about_text)
+        await register_tg_link(user_id, message.from_user.username)
+        await register_tg_bio(user_id, "")
+        await ClientStorage.next()
+        await message.answer("Спасибо Вы заполнили! Теперь скиньте от 1 до 5 фотографий, которые помогут понять людям больше о Вас, можете скинуть одну фотографию или альбом")
+
+
+@dp.message_handler(content_types=['photo'], state=ClientStorage.photos)
+async def photos_answer(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    user_id = message.from_user.id
+    # Получение идентификаторов фотографий из сообщения
+    photo_ids_ = [photo.file_id for photo in message.photo]
+    if len(photo_ids_) == 0:
+        await message.answer("Отправьте хотя бы одну фотографию")
+    else:
+        # Записываем имя пользователя в базу данных
+        # cursor = conn.cursor()
+        # count_photo - сколько мы сохраняли фотографий
+        # limit_photo сколько осталось досутпных фотографий
+        # lenphoto - количество фотографий которые пользователь хотел сохранить
+        count_photo, limit_photo, lenphoto = await register_photos_ids(user_id, photo_ids_, True)
+        # await register_tg_link(user_id, message.from_user.username)
+        if limit_photo == 0:
+            await state.finish()
+            if count_photo == lenphoto:
+                await message.answer("Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился для анкеты.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+            else:
+                await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+        else:
+            
+            await ClientStorage.next()
+            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo)            
+        # await message.answer(message)
+
+
+@dp.message_handler(content_types=['photo'], state=ClientStorage.photos_add)
+async def photos_add_answer(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    user_id = message.from_user.id
+    # Получение идентификаторов фотографий из сообщения
+    photo_ids_ = [photo.file_id for photo in message.photo]
+    if len(photo_ids_) == 0:
+        await message.answer("Отправьте хотя бы одну фотографию")
+    else:
+        # Записываем имя пользователя в базу данных
+        # cursor = conn.cursor()
+        # count_photo - сколько мы сохраняли фотографий
+        # limit_photo сколько осталось досутпных фотографий
+        # lenphoto - количество фотографий которые пользователь хотел сохранить
+        count_photo, limit_photo, lenphoto = await register_photos_ids(user_id, photo_ids_, False)
+        if limit_photo == 0:
+            await state.finish()
+            if count_photo == lenphoto:
+                await message.answer("Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился для анкеты.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+            else:
+                await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\nТеперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+        else:
+            await ClientStorage.next()
+            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo)
+
+            
+# обработка /search поиска анкеты ------
+@dp.message_handler(commands=['search'])
+async def search(message: types.Message) -> None:
+    debug.debug()
+    user_id = message.chat.id
+    user_find = await search_in_basedata(user_id)
+    if user_find is None:
+        await message.answer("Никого больше нет")
+        await sleep_update(user_id)
+        return 
+    data = await get_user_data(user_find)
+    await send_media(message.from_user.id, data)
+    await message.answer("Нашёл анкету:\n" + string_about_user(data), reply_markup=inlinekeyboardlikes(user_find))
+
+
+async def ankets_show1(chat_id_first, chat_id_second):
+    user_data = await get_user_data(chat_id_first)
+    await send_media(chat_id_second, user_data)
+    await bot.send_message(chat_id_second, "Вас  лайкну\n" + string_about_user(user_data), reply_markup=keyboards.inlinekeyboardlikes1(chat_id_first))
+
+
+async def ankets_show2(chat_id_first, chat_id_second):
+    user_data = await get_user_data(chat_id_first)
+    await send_media(chat_id_second, user_data)
+    await bot.send_message(chat_id_second, "Вас  лайкну\n" + string_about_user(user_data), reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
+
+
+@dp.callback_query_handler()
+async def vote_callbake(callback: types.CallbackQuery, state: ClientStorage) -> None: 
+    debug.debug()
+    if callback.data.startswith("like"):
+        await callback.answer(text="Ура! Бот отправил лайк")
+        await ankets_show1(callback.message.chat.id, int(callback.data.split("_")[1]))
+        await search(callback.message)
+    if callback.data.startswith("like1"):
+        await callback.answer(text="Ура! Бот отправил лайк")
+        await ankets_show2(callback.message.chat.id, int(callback.data.split("_")[1]))
+    elif callback.data.startswith("dislike"):
+        await callback.answer(text="Жаль! Ищем дальше)")
+        await search(callback.message)
+    elif callback.data.startswith("dislike1"):
+        await callback.answer(text="Жаль! Извините за беспокойство)")
+    elif callback.data == "go":
+        await state.finish()
+        await callback.message.answer(text="Вы зраегистрировали анкету!")
+    await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
+
+
+# обработка /search поиска анкеты 
+@dp.message_handler(commands=['my'])
+async def my(message: types.Message) -> None:
+    debug.debug()
+    data = await get_user_data(message.from_user.id)
+    await send_media(message.from_user.id, data)
+    await message.answer(string_about_user(data))
+
+
+# обработка /search поиска анкеты ------
+@dp.message_handler(commands=['updates'])
+async def updates(message: types.Message) -> None:
+    debug.debug()
+    # Получение списка обновлений
+    updates = await bot.get_updates() 
+    for i in updates:
+        print(i)
+
+
+async def on_startup(_) -> None:
+    from config import BOT_TOKEN, DATABASE_NAME, DEBUG
+    debug.debug()
+    start_base()
+    print(f"    токен бота: {BOT_TOKEN}")
+    print(f"    путь к базе данных: {DATABASE_NAME}")
+    print(f"    тип запуска дебаг/не дебаг: {DEBUG}")
+    print("-----------------------------------------------------------------------------------------------")
+
+
+if __name__ == '__main__':
+    executor.start_polling(
+        dispatcher=dp,
+        skip_updates=True,
+        on_startup=on_startup
+        )
