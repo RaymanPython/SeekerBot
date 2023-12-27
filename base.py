@@ -2,7 +2,6 @@ import sqlite3
 import os
 from dotenv import load_dotenv
 
-
 load_dotenv()
 # Подключение к базе данных
 conn = sqlite3.connect(os.getenv('DATABASE_NAME'))

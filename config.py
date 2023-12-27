@@ -1,7 +1,7 @@
-from dotenv import load_dotenv
 import os
-from aiogram import Bot
 
+from aiogram import Bot
+from dotenv import load_dotenv
 
 load_dotenv()
 DATABASE_NAME = os.getenv('DATABASE_NAME')

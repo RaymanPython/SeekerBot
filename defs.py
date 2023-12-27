@@ -1,9 +1,6 @@
 # это файл функций которые испоьзуются в боте но имеют только частное назначение
 
 
-import asyncio
-
-
 # функция которая узнает пол по имени
 async def check_gender(name):
     # Здесь можно добавить логику для определения пола по имени
@@ -15,3 +12,7 @@ async def check_gender(name):
         return 1
     else:
         return 2
+
+
+def string_about_user(user_data):
+    return f"""Меня зовут {user_data.name}\nО себе {user_data.about}"""

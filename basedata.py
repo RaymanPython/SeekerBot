@@ -1,8 +1,10 @@
-import aiosqlite
+import asyncio
 import sqlite3
+
+import aiosqlite
+
 from config import DATABASE_NAME
 from config import PHOTO_LIMIT
-import asyncio
 
 
 class User_data:
@@ -64,18 +66,24 @@ async def register_photos_ids(user_id, photo_ids, new_flag=True):
     photo_ids = list(set(photo_ids))
     async with aiosqlite.connect(DATABASE_NAME) as db:
         count_photo = len([photo_ids])
-        if new_flag:
+    if new_flag:
+        async with aiosqlite.connect(DATABASE_NAME) as db:
             # если поьзователь заново решается, то нам нужно очистиь поле 
             await db.execute("UPDATE users SET photo_ids = ? WHERE user_id = ?", ('', user_id))
-        else:
+            await db.commit()
+    else:
+        async with aiosqlite.connect(DATABASE_NAME) as db:
             cursor = await db.execute('SELECT photo_ids FROM users WHERE user_id = ?', (user_id,))
             cf = await cursor.fetchone()
             naw_len = len(cf[0].split())
             count_photo = min(PHOTO_LIMIT - naw_len, count_photo)
-        for i in range(count_photo):
+    for i in range(count_photo):
+        print(i)
+        async with aiosqlite.connect(DATABASE_NAME) as db:
             await db.execute("UPDATE users SET photo_ids = photo_ids || ? WHERE user_id = ?", (' ' + photo_ids[i], user_id))
             await db.commit()
-        return (count_photo, PHOTO_LIMIT - count_photo, len(photo_ids))
+    print(5)
+    return (count_photo, PHOTO_LIMIT - count_photo, len(photo_ids))
 
 
 def start_base():

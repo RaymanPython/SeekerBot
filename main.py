@@ -1,19 +1,20 @@
 # обрааботчики команд бота
+import logging
+
 from aiogram import Dispatcher, types
-from aiogram.utils import executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 # from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from aiogram.dispatcher.filters import Text
-from aiogram.dispatcher import FSMContext
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from basedata import start_base, register_name, register_tg_link, register_about, register_tg_bio, register_photos_ids, get_user_data, user_start, search_in_basedata, sleep_update, register_gender
-from texts import HELP_START
-from keyboards import inlinekeyboardgo, inlinekeyboardlikes, keboardgender, inlinekeyboardlikes1
-import keyboards
-from config import bot
-import defs
-import debug
+from aiogram.utils import executor
 
+import debug
+import defs
+import keyboards
+from basedata import start_base, register_name, register_tg_link, register_about, register_tg_bio, register_photos_ids, \
+    get_user_data, user_start, search_in_basedata, sleep_update, register_gender
+from config import bot
+from keyboards import inlinekeyboardgo, inlinekeyboardlikes, keboardgender
+from texts import HELP_START
 
 storage = MemoryStorage()
 dp = Dispatcher(
@@ -21,6 +22,16 @@ dp = Dispatcher(
     storage=storage
                 )
 # dp.middleware.setup(LoggingMiddleware())
+logging.basicConfig(level=logging.ERROR)
+
+
+async def on_error(event, exception):
+    # Выводите ошибку в логи или куда-либо еще
+    logging.error(f'Error: {event} {exception}')
+    print("_____________________________________________________________")
+
+
+dp.register_errors_handler(on_error)
 
 
 # Класс хранения состояний
@@ -46,10 +57,6 @@ async def send_media(chat_id, user_data):
         await bot.send_photo(chat_id, user_data.photo_ids[0], caption="Единственная фотография")
     else:
         await bot.send_media_group(chat_id, media=media_photo_id(user_data.photo_ids))
-
-
-def string_about_user(user_data): 
-    return f"""Меня зовут {user_data.name}\nО себе {user_data.about}"""
 
 
 # Обработчик команды /start
@@ -129,7 +136,7 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
     debug.debug()
     user_id = message.from_user.id
     # Получение идентификаторов фотографий из сообщения
-    photo_ids_ = [photo.file_id for photo in message.photo]
+    photo_ids_ = list(set([photo.file_id for photo in message.photo]))
     if len(photo_ids_) == 0:
         await message.answer("Отправьте хотя бы одну фотографию")
     else:
@@ -191,23 +198,34 @@ async def search(message: types.Message) -> None:
         return 
     data = await get_user_data(user_find)
     await send_media(message.from_user.id, data)
-    await message.answer("Нашёл анкету:\n" + string_about_user(data), reply_markup=inlinekeyboardlikes(user_find))
+    await message.answer("Нашёл анкету:\n" + defs.string_about_user(data), reply_markup=inlinekeyboardlikes(user_find))
 
 
 async def ankets_show1(chat_id_first, chat_id_second):
     user_data = await get_user_data(chat_id_first)
     await send_media(chat_id_second, user_data)
-    await bot.send_message(chat_id_second, "Вас  лайкну\n" + string_about_user(user_data), reply_markup=keyboards.inlinekeyboardlikes1(chat_id_first))
+    await bot.send_message(chat_id_second, "Вас  лайкну\n" + defs.string_about_user(user_data),
+                           reply_markup=keyboards.inlinekeyboardlikes1(chat_id_first))
 
 
 async def ankets_show2(chat_id_first, chat_id_second):
     user_data = await get_user_data(chat_id_first)
     await send_media(chat_id_second, user_data)
-    await bot.send_message(chat_id_second, "Вас  лайкну\n" + string_about_user(user_data), reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
+    await bot.send_message(chat_id_second, "Вас  лайкну\n" + defs.string_about_user(user_data),
+                           reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
+
+
+@dp.callback_query_handler(lambda c: c.data == 'go')
+async def callbake_go(callback_data: types.CallbackQuery, state) -> None:
+    # print(5)
+    await state.finish()
+    await callback_data.message.answer(text="Вы зраегистрировали анкету!")
+    await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
+                                        reply_markup=keyboards.none_keyboard)
 
 
 @dp.callback_query_handler()
-async def vote_callbake(callback: types.CallbackQuery, state: ClientStorage) -> None: 
+async def vote_callbake(callback: types.CallbackQuery) -> None: 
     debug.debug()
     if callback.data.startswith("like"):
         await callback.answer(text="Ура! Бот отправил лайк")
@@ -221,9 +239,6 @@ async def vote_callbake(callback: types.CallbackQuery, state: ClientStorage) -> 
         await search(callback.message)
     elif callback.data.startswith("dislike1"):
         await callback.answer(text="Жаль! Извините за беспокойство)")
-    elif callback.data == "go":
-        await state.finish()
-        await callback.message.answer(text="Вы зраегистрировали анкету!")
     await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
 
 
@@ -233,7 +248,7 @@ async def my(message: types.Message) -> None:
     debug.debug()
     data = await get_user_data(message.from_user.id)
     await send_media(message.from_user.id, data)
-    await message.answer(string_about_user(data))
+    await message.answer(defs.string_about_user(data))
 
 
 # обработка /search поиска анкеты ------

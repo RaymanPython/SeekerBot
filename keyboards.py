@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, KeyboardButtonPollType
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
 
 def inlinekeyboardlikes(user_id):
@@ -26,7 +26,7 @@ def inlinekeyboardlink(link):
     return keyboard
 
 
-inlinekeyboardgo = InlineKeyboardMarkup(row_width=2)
+inlinekeyboardgo = InlineKeyboardMarkup(row_width=1)
 inlinekeyboardgo .add(
                 InlineKeyboardButton(text="дальше", callback_data="go"), 
                 )
