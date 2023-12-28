@@ -78,11 +78,9 @@ async def register_photos_ids(user_id, photo_ids, new_flag=True):
             naw_len = len(cf[0].split())
             count_photo = min(PHOTO_LIMIT - naw_len, count_photo)
     for i in range(count_photo):
-        print(i)
         async with aiosqlite.connect(DATABASE_NAME) as db:
             await db.execute("UPDATE users SET photo_ids = photo_ids || ? WHERE user_id = ?", (' ' + photo_ids[i], user_id))
             await db.commit()
-    print(5)
     return (count_photo, PHOTO_LIMIT - count_photo, len(photo_ids))
 
 
@@ -119,21 +117,21 @@ async def get_user_data(user_id):
 async def sleep_update(user_id):
     await asyncio.sleep(50)
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        await db.execute("UPDATE users SET index_user = ? WHERE user_id = ?", ("0", str(user_id)))
+        await db.execute("UPDATE users SET index_ankket = ? WHERE user_id = ?", ("0", str(user_id)))
         await db.commit()
 
     
 async def search_in_basedata(user_id):
     user_id = str(user_id)
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        cursor = await db.execute(f'SELECT index_user FROM users WHERE user_id={user_id}')
+        cursor = await db.execute(f'SELECT index_ankket FROM users WHERE user_id={user_id}')
         k = await cursor.fetchone()
     k = k[0] + 1
     async with aiosqlite.connect(DATABASE_NAME) as db:
         cursor = await db.execute('SELECT user_id FROM users WHERE user_id != ? AND photo_ids != "" LIMIT ?', (user_id, str(k)))
         user_data = await cursor.fetchall()
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        await db.execute("UPDATE users SET index_user = ? WHERE user_id = ?", (str(k), user_id))
+        await db.execute("UPDATE users SET index_ankket = ? WHERE user_id = ?", (str(k), user_id))
         await db.commit()
     if len(user_data) >= k:
         return user_data[-1][0]
