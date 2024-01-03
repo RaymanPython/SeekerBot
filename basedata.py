@@ -18,14 +18,15 @@ class User_data:
 
 async def user_start(user_id):
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        flag = await db.execute(f"SELECT 1 FROM users WHERE user_id = {user_id}")
+        flag = await db.execute(f"SELECT 1 FROM users WHERE user_id = {str(user_id)}")
         await db.commit()
     if flag:
         return True
-    async with aiosqlite.connect(DATABASE_NAME) as db:
-        await db.execute(f"INSERT INTO users (user_id) VALUES ({user_id})")
-        await db.commit()
-        return True
+    else:
+        async with aiosqlite.connect(DATABASE_NAME) as db:
+            await db.execute(f"INSERT INTO users (user_id) VALUES ({str(user_id)})")
+            await db.commit()
+            return True
 
 
 async def register_value(name_value, user_id, field_value):
@@ -63,25 +64,28 @@ async def register_gender(user_id, gender):
 
 
 async def register_photos_ids(user_id, photo_ids, new_flag=True):
-    photo_ids = list(set(photo_ids))
-    async with aiosqlite.connect(DATABASE_NAME) as db:
-        count_photo = len([photo_ids])
-    if new_flag:
+    try:
+        photo_ids = list(set(photo_ids))
         async with aiosqlite.connect(DATABASE_NAME) as db:
-            # если поьзователь заново решается, то нам нужно очистиь поле 
-            await db.execute("UPDATE users SET photo_ids = ? WHERE user_id = ?", ('', user_id))
-            await db.commit()
-    else:
-        async with aiosqlite.connect(DATABASE_NAME) as db:
-            cursor = await db.execute('SELECT photo_ids FROM users WHERE user_id = ?', (user_id,))
-            cf = await cursor.fetchone()
-            naw_len = len(cf[0].split())
-            count_photo = min(PHOTO_LIMIT - naw_len, count_photo)
-    for i in range(count_photo):
-        async with aiosqlite.connect(DATABASE_NAME) as db:
-            await db.execute("UPDATE users SET photo_ids = photo_ids || ? WHERE user_id = ?", (' ' + photo_ids[i], user_id))
-            await db.commit()
-    return (count_photo, PHOTO_LIMIT - count_photo, len(photo_ids))
+            count_photo = len([photo_ids])
+        if new_flag:
+            async with aiosqlite.connect(DATABASE_NAME) as db:
+                # если поьзователь заново решается, то нам нужно очистиь поле 
+                await db.execute("UPDATE users SET photo_ids = ? WHERE user_id = ?", ('', user_id))
+                await db.commit()
+        else:
+            async with aiosqlite.connect(DATABASE_NAME) as db:
+                cursor = await db.execute('SELECT photo_ids FROM users WHERE user_id = ?', (user_id,))
+                cf = await cursor.fetchone()
+                naw_len = len(cf[0].split())
+                count_photo = min(PHOTO_LIMIT - naw_len, count_photo)
+        for i in range(count_photo):
+            async with aiosqlite.connect(DATABASE_NAME) as db:
+                await db.execute("UPDATE users SET photo_ids = photo_ids || ? WHERE user_id = ?", (' ' + photo_ids[i], user_id))
+                await db.commit()
+        return (count_photo, PHOTO_LIMIT - count_photo, len(photo_ids))
+    except Exception as e:
+        print(e)
 
 
 def start_base():

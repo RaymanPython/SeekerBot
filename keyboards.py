@@ -26,10 +26,12 @@ def inlinekeyboardlink(link):
     return keyboard
 
 
-inlinekeyboardgo = InlineKeyboardMarkup(row_width=1)
-inlinekeyboardgo .add(
+def inlinekeyboardgo():
+    inlinekeyboardgo = InlineKeyboardMarkup(row_width=1)
+    inlinekeyboardgo .add(
                 InlineKeyboardButton(text="дальше", callback_data="go"), 
                 )
+    return inlinekeyboardgo
 
 
 inlinekeyboardsearch = InlineKeyboardMarkup(row_width=2)

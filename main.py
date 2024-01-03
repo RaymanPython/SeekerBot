@@ -34,6 +34,13 @@ async def on_error(event, exception):
 dp.register_errors_handler(on_error)
 
 
+@dp.errors_handler()
+async def errors_handler(update, exception):
+    # Выводим информацию об ошибке в консоль
+    print(f"Произошла ошибка: {exception}")
+    return True
+
+
 # Класс хранения состояний
 class ClientStorage(StatesGroup):
     start = State()
@@ -60,7 +67,7 @@ async def send_media(chat_id, user_data):
 
 
 # Обработчик команды /start
-@dp.message_handler(commands=['start'], state=None)
+@dp.message_handler(commands=['start'])
 async def start(message: types.Message) -> None:
     debug.debug()
     await ClientStorage.start.set()
@@ -156,8 +163,9 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
         else:
             
             await ClientStorage.next()
-            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo)            
+            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())            
         # await message.answer(message)
+        print("Hello World!")
 
 
 @dp.message_handler(content_types=['photo'], state=ClientStorage.photos_add)
@@ -183,7 +191,7 @@ async def photos_add_answer(message: types.Message, state: ClientStorage) -> Non
                 await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\nТеперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
         else:
             await ClientStorage.next()
-            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo)
+            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())
 
             
 # обработка /search поиска анкеты ------
@@ -215,16 +223,23 @@ async def ankets_show2(chat_id_first, chat_id_second):
                            reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
 
 
-@dp.callback_query_handler(lambda c: c.data == 'go')
-async def callbake_go(callback_data: types.CallbackQuery, state) -> None:
+# @dp.callback_query_handler(lambda c: c.data == 'go')
+async def callbake_go(callback_data: types.CallbackQuery):
     # print(5)
-    await state.finish()
+    # await state.finish()
     await callback_data.message.answer(text="Вы зраегистрировали анкету!")
-    await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
-                                        reply_markup=keyboards.none_keyboard)
-
+    # await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
+    #                                     reply_markup=keyboards.none_keyboard)
 
 @dp.callback_query_handler()
+async def button_callback_handler(callback_query: types.CallbackQuery):
+    print(5)
+    callback_data = callback_query.data
+    await callback_query.answer(f"Вы нажали кнопку: {callback_data}")
+
+
+
+# 
 async def vote_callbake(callback: types.CallbackQuery) -> None: 
     debug.debug()
     if callback.data.startswith("like"):
@@ -277,3 +292,4 @@ if __name__ == '__main__':
         skip_updates=True,
         on_startup=on_startup
         )
+    dp.register_callback_query_handler(callbake_go, text="go")
