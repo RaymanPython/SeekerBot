@@ -161,7 +161,6 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
             else:
                 await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
         else:
-            
             await ClientStorage.next()
             await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())            
         # await message.answer(message)
@@ -204,7 +203,7 @@ async def search(message: types.Message) -> None:
         await sleep_update(user_id)
         return 
     data = await get_user_data(user_find)
-    await send_media(message.from_user.id, data)
+    await send_media(message.chat.id, data)
     await message.answer("Нашёл анкету:\n" + defs.string_about_user(data), reply_markup=inlinekeyboardlikes(user_find))
 
 
@@ -218,7 +217,7 @@ async def ankets_show1(chat_id_first, chat_id_second):
 async def ankets_show2(chat_id_first, chat_id_second):
     user_data = await get_user_data(chat_id_first)
     await send_media(chat_id_second, user_data)
-    await bot.send_message(chat_id_second, "Вас  лайкну\n" + defs.string_about_user(user_data),
+    await bot.send_message(chat_id_second, "Вас  лайкнул\n" + defs.string_about_user(user_data),
                            reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
 
 
@@ -233,6 +232,7 @@ async def callbake_go(callback_data: types.CallbackQuery, state ):
 @dp.callback_query_handler()
 async def vote_callbake(callback: types.CallbackQuery) -> None: 
     debug.debug()
+    await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
     if callback.data.startswith("like"):
         await callback.answer(text="Ура! Бот отправил лайк")
         await ankets_show1(callback.message.chat.id, int(callback.data.split("_")[1]))
@@ -240,13 +240,13 @@ async def vote_callbake(callback: types.CallbackQuery) -> None:
     if callback.data.startswith("like1"):
         await callback.answer(text="Ура! Бот отправил лайк")
         await ankets_show2(callback.message.chat.id, int(callback.data.split("_")[1]))
+        await ankets_show2(callback.message.chat.id, callback.message.chat.id)
     elif callback.data.startswith("dislike"):
         await callback.answer(text="Жаль! Ищем дальше)")
         await search(callback.message)
     elif callback.data.startswith("dislike1"):
         await callback.answer(text="Жаль! Извините за беспокойство)")
-    await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
-
+    
 
 # обработка /search поиска анкеты 
 @dp.message_handler(commands=['my'])
