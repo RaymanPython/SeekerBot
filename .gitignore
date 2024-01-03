@@ -1,7 +1,14 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-/.vscode
+.vscode
+
+# Игнорировать файлы базы данных
+mydatabase.db
+database/
+
+# Игнорировать все файлы с расширением .db
+*.db
 
 # C extensions
 *.so

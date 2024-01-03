@@ -20,7 +20,7 @@ async def user_start(user_id):
     async with aiosqlite.connect(DATABASE_NAME) as db:
         flag = await db.execute(f"SELECT 1 FROM users WHERE user_id = {str(user_id)}")
         await db.commit()
-    if flag:
+    if flag == 1:
         return True
     else:
         async with aiosqlite.connect(DATABASE_NAME) as db:
@@ -113,7 +113,7 @@ def start_base():
 
 async def get_user_data(user_id):
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        cursor = await db.execute(f'SELECT name, about, photo_ids, tglink FROM users WHERE user_id = {user_id}')
+        cursor = await db.execute(f'SELECT name, about, photo_ids, tglink FROM users WHERE user_id = {str(user_id)}')
         user_data = await cursor.fetchone()
         return User_data(user_data[0], user_data[1], user_data[2], user_data[3])
     
