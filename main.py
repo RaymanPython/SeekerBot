@@ -165,8 +165,7 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
             await ClientStorage.next()
             await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())            
         # await message.answer(message)
-        print("Hello World!")
-
+       
 
 @dp.message_handler(content_types=['photo'], state=ClientStorage.photos_add)
 async def photos_add_answer(message: types.Message, state: ClientStorage) -> None:
@@ -223,23 +222,15 @@ async def ankets_show2(chat_id_first, chat_id_second):
                            reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
 
 
-# @dp.callback_query_handler(lambda c: c.data == 'go')
-async def callbake_go(callback_data: types.CallbackQuery):
-    # print(5)
-    # await state.finish()
+@dp.callback_query_handler(lambda c: c.data == 'go', state=ClientStorage.photos_add)
+async def callbake_go(callback_data: types.CallbackQuery, state ):
+    await state.finish()
     await callback_data.message.answer(text="Вы зраегистрировали анкету!")
-    # await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
-    #                                     reply_markup=keyboards.none_keyboard)
+    await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
+                                         reply_markup=keyboards.none_keyboard)
+
 
 @dp.callback_query_handler()
-async def button_callback_handler(callback_query: types.CallbackQuery):
-    print(5)
-    callback_data = callback_query.data
-    await callback_query.answer(f"Вы нажали кнопку: {callback_data}")
-
-
-
-# 
 async def vote_callbake(callback: types.CallbackQuery) -> None: 
     debug.debug()
     if callback.data.startswith("like"):
