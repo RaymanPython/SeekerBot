@@ -1,10 +1,7 @@
 import asyncio
 import sqlite3
-
 import aiosqlite
-
-from config import DATABASE_NAME
-from config import PHOTO_LIMIT
+from config import DATABASE_NAME, PHOTO_LIMIT, DEBUG
 
 
 class User_data:
@@ -66,6 +63,8 @@ async def register_gender(user_id, gender):
 async def register_photos_ids(user_id, photo_ids, new_flag=True):
     try:
         photo_ids = list(set(photo_ids))
+        for i in photo_ids:
+            print(i, type(i))
         async with aiosqlite.connect(DATABASE_NAME) as db:
             count_photo = len([photo_ids])
         if new_flag:
@@ -73,17 +72,21 @@ async def register_photos_ids(user_id, photo_ids, new_flag=True):
                 # если поьзователь заново решается, то нам нужно очистиь поле 
                 await db.execute("UPDATE users SET photo_ids = ? WHERE user_id = ?", ('', user_id))
                 await db.commit()
+                naw_len = 0
         else:
             async with aiosqlite.connect(DATABASE_NAME) as db:
                 cursor = await db.execute('SELECT photo_ids FROM users WHERE user_id = ?', (user_id,))
                 cf = await cursor.fetchone()
                 naw_len = len(cf[0].split())
-                count_photo = min(PHOTO_LIMIT - naw_len, count_photo)
-        for i in range(count_photo):
+        count_photo = 0
+        for i in range(len(photo_ids)):
             async with aiosqlite.connect(DATABASE_NAME) as db:
+                if naw_len + count_photo >= PHOTO_LIMIT:
+                    break
                 await db.execute("UPDATE users SET photo_ids = photo_ids || ? WHERE user_id = ?", (' ' + photo_ids[i], user_id))
                 await db.commit()
-        return (count_photo, PHOTO_LIMIT - count_photo, len(photo_ids))
+                count_photo += 1
+        return (count_photo, max(PHOTO_LIMIT - naw_len - count_photo, 0), count_photo)
     except Exception as e:
         print(e)
 
@@ -119,7 +122,10 @@ async def get_user_data(user_id):
     
 
 async def sleep_update(user_id):
-    await asyncio.sleep(50)
+    if DEBUG:
+        await asyncio.sleep(50)
+    else:
+        await asyncio.sleep(24 * 60)
     async with aiosqlite.connect(DATABASE_NAME) as db:
         await db.execute("UPDATE users SET index_ankket = ? WHERE user_id = ?", ("0", str(user_id)))
         await db.commit()

@@ -14,7 +14,7 @@ from basedata import start_base, register_name, register_tg_link, register_about
     get_user_data, user_start, search_in_basedata, sleep_update, register_gender
 from config import bot
 from keyboards import inlinekeyboardgo, inlinekeyboardlikes, keboardgender
-from texts import HELP_START
+import texts
 
 storage = MemoryStorage()
 dp = Dispatcher(
@@ -74,13 +74,6 @@ async def start(message: types.Message) -> None:
     await ClientStorage.next()
     await message.answer("Заполните вашу анкету. Как вас зовут?")
     await user_start(message.from_user.id)
-
-
-# Обработка команды /help
-@dp.message_handler(commands=['help'])
-async def help(message: types.Message) -> None:
-    debug.debug()
-    await message.answer(HELP_START, parse_mode="HTML")
 
 
 # Обработчик ответа на имя
@@ -143,7 +136,7 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
     debug.debug()
     user_id = message.from_user.id
     # Получение идентификаторов фотографий из сообщения
-    photo_ids_ = list(set([photo.file_id for photo in message.photo]))
+    photo_ids_ = [list(set([photo.file_id for photo in message.photo]))[0]]
     if len(photo_ids_) == 0:
         await message.answer("Отправьте хотя бы одну фотографию")
     else:
@@ -162,7 +155,7 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
                 await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
         else:
             await ClientStorage.next()
-            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())            
+            await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или завершить заполнение", reply_markup=inlinekeyboardgo())            
         # await message.answer(message)
        
 
@@ -171,7 +164,7 @@ async def photos_add_answer(message: types.Message, state: ClientStorage) -> Non
     debug.debug()
     user_id = message.from_user.id
     # Получение идентификаторов фотографий из сообщения
-    photo_ids_ = [photo.file_id for photo in message.photo]
+    photo_ids_ = [list(set([photo.file_id for photo in message.photo]))[0]]
     if len(photo_ids_) == 0:
         await message.answer("Отправьте хотя бы одну фотографию")
     else:
@@ -188,7 +181,7 @@ async def photos_add_answer(message: types.Message, state: ClientStorage) -> Non
             else:
                 await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\nТеперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
         else:
-            await ClientStorage.next()
+            # await ClientStorage.next()
             await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())
 
             
@@ -199,7 +192,7 @@ async def search(message: types.Message) -> None:
     user_id = message.chat.id
     user_find = await search_in_basedata(user_id)
     if user_find is None:
-        await message.answer("Никого больше нет")
+        await message.answer("Никого больше нет, можете подождать хотя бы 24 минуты")
         await sleep_update(user_id)
         return 
     data = await get_user_data(user_find)
@@ -255,6 +248,12 @@ async def my(message: types.Message) -> None:
     data = await get_user_data(message.from_user.id)
     await send_media(message.from_user.id, data)
     await message.answer(defs.string_about_user(data))
+
+
+# Обработка команды /help
+@dp.message_handler(commands=['help'])
+async def help_command(message: types.Message):
+    await message.reply(texts.HELP_START, parse_mode=types.ParseMode.HTML)
 
 
 # обработка /search поиска анкеты ------
