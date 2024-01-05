@@ -233,7 +233,7 @@ async def vote_callbake(callback: types.CallbackQuery) -> None:
     if callback.data.startswith("like1"):
         await callback.answer(text="Ура! Бот отправил лайк")
         await ankets_show2(callback.message.chat.id, int(callback.data.split("_")[1]))
-        await ankets_show2(callback.message.chat.id, callback.message.chat.id)
+        await ankets_show2(int(callback.data.split("_")[1]), callback.message.chat.id)
     elif callback.data.startswith("dislike"):
         await callback.answer(text="Жаль! Ищем дальше)")
         await search(callback.message)
