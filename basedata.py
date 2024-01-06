@@ -16,7 +16,9 @@ class User_data:
 async def user_start(user_id):
     async with aiosqlite.connect(DATABASE_NAME) as db:
         flag = await db.execute(f"SELECT 1 FROM users WHERE user_id = {str(user_id)}")
-        await db.commit()
+        flag = await flag.fetchone()
+        flag = flag[0]
+    print(flag)
     if flag == 1:
         return True
     else:
@@ -63,8 +65,6 @@ async def register_gender(user_id, gender):
 async def register_photos_ids(user_id, photo_ids, new_flag=True):
     try:
         photo_ids = list(set(photo_ids))
-        for i in photo_ids:
-            print(i, type(i))
         async with aiosqlite.connect(DATABASE_NAME) as db:
             count_photo = len([photo_ids])
         if new_flag:
