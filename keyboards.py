@@ -38,9 +38,25 @@ inlinekeyboardsearch = InlineKeyboardMarkup(row_width=2)
 inlinekeyboardsearch .add(
                 InlineKeyboardButton(text="дальше", callback_data="go"), 
                 )
+
 keboardgender = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True) # default - False
 button1 = KeyboardButton('Я парень')
 button2 = KeyboardButton('Я девушка')
 keboardgender.add(button1).insert(button2)
+
+comands = InlineKeyboardMarkup()
+buttonc1 = InlineKeyboardButton(text="Моя анкета", callback_data="my")    
+buttonc2 = InlineKeyboardButton(text="Хочу найти человека", callback_data="search")  
+buttonc3 = InlineKeyboardButton(text="Инструкция", callback_data="help")        
+comands.add(buttonc1).add(buttonc2).add(buttonc3)
+
+keboardcity = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True) # default - False
+buttoncity = KeyboardButton('Ищу в любом городе')
+keboardcity.add(buttoncity)
+
+keboardbool = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True) # default - False
+buttonbool1 = KeyboardButton('Да')
+buttonbool2 = KeyboardButton('Нет')
+keboardbool.add(buttonbool1).insert(buttonbool2)
 
 none_keyboard = InlineKeyboardMarkup()

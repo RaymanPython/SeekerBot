@@ -1,17 +1,21 @@
 import sqlite3
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-# Подключение к базе данных
-conn = sqlite3.connect(os.getenv('DATABASE_NAME'))
+# Подключаемся к базе данных
+conn = sqlite3.connect('base.db')
+cursor = conn.cursor()
 
-# Создание таблицы
-cur = conn.cursor()
-# Добавление нового столбца is_registered с типом данных BOOL и значением по умолчанию false
-cur.execute("ALTER TABLE users ADD COLUMN index_ankket INTEGER DEFAULT 0")
+# Добавляем столбец "city" в таблицу "users"
+# cursor.execute("ALTER TABLE users ADD COLUMN city VARCHAR(255)")
+
+# Заполняем столбец "city" значениями "все"
+# cursor.execute("UPDATE users SET city = 'все'")
+# conn.commit()
+# Создаем триггер для автоматического заполнения столбца "city" при вставке новых записей
+# Удаляем столбец "city" из таблицы "users"
+# cursor.execute("ALTER TABLE users DROP COLUMN city")
+# Изменяем таблицу и задаем автоматическое значение "все" для столбца "city"
+cursor.execute("ALTER TABLE users ADD COLUMN city VARCHAR(255) DEFAULT 'все'")
+
+# Сохраняем изменения и закрываем соединение с базой данных
 conn.commit()
-
-# Закрытие соединения
-cur.close()
 conn.close()

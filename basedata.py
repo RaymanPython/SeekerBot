@@ -6,11 +6,12 @@ from config import DATABASE_NAME, PHOTO_LIMIT, DEBUG
 
 class User_data:
 
-    def __init__(self, name, about, photo_ids, tglink):
+    def __init__(self, name, about, photo_ids, tglink, city):
         self.name = name
         self.about = about
         self.photo_ids = photo_ids.split()
         self.tglink = tglink
+        self.city = city
 
 
 async def user_start(user_id):
@@ -18,9 +19,12 @@ async def user_start(user_id):
         flag = await db.execute(f"SELECT 1 FROM users WHERE user_id = {str(user_id)}")
         flag = await flag.fetchone()
         flag = flag[0]
-    print(flag)
+    # print(flag)
     if flag == 1:
-        return True
+         async with aiosqlite.connect(DATABASE_NAME) as db:
+            # await db.execute(f"INSERT INTO users (user_id) VALUES ({str(user_id)})")
+            await db.execute(f"UPDATE users SET index_ankket=0 WHERE user_id=?", (user_id))
+            return True
     else:
         async with aiosqlite.connect(DATABASE_NAME) as db:
             await db.execute(f"INSERT INTO users (user_id) VALUES ({str(user_id)})")
@@ -57,8 +61,12 @@ async def register_about(user_id, tgbio):
 
 
 async def register_gender(user_id, gender):
-    await register_value("gender", user_id, gender)
     await register_value("search_gender", user_id, 1 - gender)
+    return True
+
+
+async def register_city(user_id, city):
+    await register_value("city", user_id, city)
     return True
 
 
@@ -116,9 +124,9 @@ def start_base():
 
 async def get_user_data(user_id):
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        cursor = await db.execute(f'SELECT name, about, photo_ids, tglink FROM users WHERE user_id = {str(user_id)}')
+        cursor = await db.execute(f'SELECT name, about, photo_ids, tglink, city FROM users WHERE user_id = {str(user_id)}')
         user_data = await cursor.fetchone()
-        return User_data(user_data[0], user_data[1], user_data[2], user_data[3])
+        return User_data(user_data[0], user_data[1], user_data[2], user_data[3], user_data[4])
     
 
 async def sleep_update(user_id):
@@ -134,12 +142,18 @@ async def sleep_update(user_id):
 async def search_in_basedata(user_id):
     user_id = str(user_id)
     async with aiosqlite.connect(DATABASE_NAME) as db:
-        cursor = await db.execute(f'SELECT index_ankket FROM users WHERE user_id={user_id}')
+        cursor = await db.execute(f'SELECT index_ankket, city FROM users WHERE user_id={user_id}')
         k = await cursor.fetchone()
+    city = k[1]
     k = k[0] + 1
-    async with aiosqlite.connect(DATABASE_NAME) as db:
-        cursor = await db.execute('SELECT user_id FROM users WHERE user_id != ? AND photo_ids != "" LIMIT ?', (user_id, str(k)))
-        user_data = await cursor.fetchall()
+    if city == 'все':
+        async with aiosqlite.connect(DATABASE_NAME) as db:
+            cursor = await db.execute('SELECT user_id FROM users WHERE user_id != ? AND photo_ids != "" LIMIT ?', (user_id, str(k)))
+            user_data = await cursor.fetchall()
+    else:
+         async with aiosqlite.connect(DATABASE_NAME) as db:
+            cursor = await db.execute('SELECT user_id FROM users WHERE user_id != ? AND photo_ids != "" AND (city = ? OR city = "все") LIMIT ?', (user_id, city, str(k)))
+            user_data = await cursor.fetchall()
     async with aiosqlite.connect(DATABASE_NAME) as db:
         await db.execute("UPDATE users SET index_ankket = ? WHERE user_id = ?", (str(k), user_id))
         await db.commit()

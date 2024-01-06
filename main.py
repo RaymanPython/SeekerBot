@@ -11,7 +11,7 @@ import debug
 import defs
 import keyboards
 from basedata import start_base, register_name, register_tg_link, register_about, register_tg_bio, register_photos_ids, \
-    get_user_data, user_start, search_in_basedata, sleep_update, register_gender
+    get_user_data, user_start, search_in_basedata, sleep_update, register_gender, register_city
 from config import bot
 from keyboards import inlinekeyboardgo, inlinekeyboardlikes, keboardgender
 import texts
@@ -46,6 +46,8 @@ class ClientStorage(StatesGroup):
     start = State()
     name = State()
     gender = State()
+    get_city = State()
+    get_city_prov = State()
     about = State()
     photos = State()
     photos_add = State()
@@ -94,7 +96,7 @@ async def text_name_answer(message: types.Message, state: ClientStorage) -> None
         else:
             await ClientStorage.next()
             await register_gender(user_id, gender)
-            await message.answer(f"Спасибо {name} Вы заполнили! Теперь расскажите пожалуйста о том кого Вы хотите найти и о себе")
+            await message.answer(f"Спасибо {name} Вы заполнили! Теперь расскажите пожалуйста о том в каком городе Вы ищете людей?")
 
 
 # Обработчик ответа на пол
@@ -112,10 +114,47 @@ async def gender_answer(message: types.Message, state: ClientStorage) -> None:
         return
     await register_gender(user_id, gender)
     await ClientStorage.next()
-    await message.answer("Спасибо Вы заполнили! Теперь расскажите пожалуйста о том кого Вы хотите найти и о себе")
+    await message.answer("Спасибо Вы заполнили свой пол! Теперь расскажите пожалуйста о том в каком городе Вы ищете людей?", 
+                         reply_markup=keyboards.keboardcity)
 
 
-# Обработчик ответа на имя
+# Обработчик ответа на город
+@dp.message_handler(state=ClientStorage.get_city)
+async def get_city(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    user_id = message.from_user.id
+    text = message.text.lower()
+    if text == "ищу в любом городе":
+        city = text
+    else:
+        city = defs.get_name_city(text)
+        if city is None:
+            await message.answer("Введите корректный город", 
+                         reply_markup=keyboards.keboardcity)
+            return 
+        await register_city(user_id, city)
+    await ClientStorage.next()
+    await message.answer(f"Ваш город {city}?", 
+                         reply_markup=keyboards.keboardbool)
+
+
+# Обработчик ответа на город проверка
+@dp.message_handler(state=ClientStorage.get_city_prov)
+async def get_city_prov(message: types.Message, state: ClientStorage) -> None:
+    debug.debug()
+    user_id = message.from_user.id
+    text = message.text.lower()
+    if text == "да":
+        await ClientStorage.next()
+        await message.answer("Спасибо Вы заполнили! Теперь расскажите пожалуйста о том кого Вы хотите найти и о себе", 
+                         reply_markup=keyboards.none_keyboard)
+    else:
+        await ClientStorage.get_city.set()
+        await message.answer("Введите правилный город", 
+                         reply_markup=keyboards.keboardcity)
+
+
+# Обработчик ответа на описание
 @dp.message_handler(state=ClientStorage.about)
 async def text_about_answer(message: types.Message, state: ClientStorage) -> None:
     debug.debug()
@@ -203,21 +242,21 @@ async def search(message: types.Message) -> None:
 async def ankets_show1(chat_id_first, chat_id_second):
     user_data = await get_user_data(chat_id_first)
     await send_media(chat_id_second, user_data)
-    await bot.send_message(chat_id_second, "Вас  лайкну\n" + defs.string_about_user(user_data),
+    await bot.send_message(chat_id_second, "Вас  лайкнул\n" + defs.string_about_user(user_data),
                            reply_markup=keyboards.inlinekeyboardlikes1(chat_id_first))
 
 
 async def ankets_show2(chat_id_first, chat_id_second):
     user_data = await get_user_data(chat_id_first)
     await send_media(chat_id_second, user_data)
-    await bot.send_message(chat_id_second, "Вас  лайкнул\n" + defs.string_about_user(user_data),
+    await bot.send_message(chat_id_second, "Взаимный лайк\n" + defs.string_about_user(user_data),
                            reply_markup=keyboards.inlinekeyboardlink(user_data.tglink))
 
 
 @dp.callback_query_handler(lambda c: c.data == 'go', state=ClientStorage.photos_add)
 async def callbake_go(callback_data: types.CallbackQuery, state ):
     await state.finish()
-    await callback_data.message.answer(text="Вы зраегистрировали анкету!")
+    await callback_data.message.answer(text="Вы зраегистрировали анкету!", reply_markup=keyboards.comands)
     await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
                                          reply_markup=keyboards.none_keyboard)
 
@@ -225,7 +264,8 @@ async def callbake_go(callback_data: types.CallbackQuery, state ):
 @dp.callback_query_handler()
 async def vote_callbake(callback: types.CallbackQuery) -> None: 
     debug.debug()
-    await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
+    if callback.data not in ["my", "search", "help"]:
+        await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
     if callback.data.startswith("like"):
         await callback.answer(text="Ура! Бот отправил лайк")
         await ankets_show1(callback.message.chat.id, int(callback.data.split("_")[1]))
@@ -239,14 +279,20 @@ async def vote_callbake(callback: types.CallbackQuery) -> None:
         await search(callback.message)
     elif callback.data.startswith("dislike1"):
         await callback.answer(text="Жаль! Извините за беспокойство)")
+    elif callback.data == "my":
+        await my(callback.message)
+    elif callback.data == "search":
+        await search(callback.message)
+    elif callback.data == "help":
+        await help_command(callback.message)
     
 
 # обработка /search поиска анкеты 
 @dp.message_handler(commands=['my'])
 async def my(message: types.Message) -> None:
     debug.debug()
-    data = await get_user_data(message.from_user.id)
-    await send_media(message.from_user.id, data)
+    data = await get_user_data(message.chat.id)
+    await send_media(message.chat.id, data)
     await message.answer(defs.string_about_user(data))
 
 

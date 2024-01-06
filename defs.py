@@ -1,4 +1,5 @@
 # это файл функций которые испоьзуются в боте но имеют только частное назначение
+from geopy.geocoders import Nominatim
 
 
 female_names = ["Анна", "Мария", "Александра", "Екатерина",
@@ -42,4 +43,13 @@ async def check_gender(name: str):
 
 
 def string_about_user(user_data):
-    return f"""Меня зовут {user_data.name}\nО себе {user_data.about}"""
+    return f"""Меня зовут {user_data.name}\n Я ищу в городах: {user_data.city} \n О себе {user_data.about}"""
+
+
+def get_name_city(city_name):
+    # Пример использования
+    geolocator = Nominatim(user_agent="my_geocoder")
+    location = geolocator.geocode(city_name)
+    if location is None:
+        return None
+    return location.raw["name"]

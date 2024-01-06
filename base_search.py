@@ -8,10 +8,11 @@ from sqlalchemy.orm import selectinload, sessionmaker
 from sqlalchemy.orm.query import Query
 from sqlalchemy.future import select as async_select
 from models import User  # Здесь предполагается, что у вас есть модель User
+from config import DATABASE_NAME
 
 async def find_similar_users(id_user, k):
     # Создаем асинхронный движок для работы с базой данных SQLite
-    engine = create_async_engine("sqlite+aiosqlite:///database.db")
+    engine = create_async_engine(DATABASE_NAME)
 
     # Создаем асинхронную сессию для работы с базой данных
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
