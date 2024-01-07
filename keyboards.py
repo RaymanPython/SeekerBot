@@ -34,7 +34,7 @@ def inlinekeyboardgo():
     return inlinekeyboardgo
 
 
-inlinekeyboardsearch = InlineKeyboardMarkup(row_width=2)
+inlinekeyboardsearch = InlineKeyboardMarkup(row_width=1)
 inlinekeyboardsearch .add(
                 InlineKeyboardButton(text="дальше", callback_data="go"), 
                 )
@@ -58,5 +58,22 @@ keboardbool = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True) 
 buttonbool1 = KeyboardButton('Да')
 buttonbool2 = KeyboardButton('Нет')
 keboardbool.add(buttonbool1).insert(buttonbool2)
+
+
+keboardmain = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True) # default - False
+buttonmain1 = KeyboardButton('🔎', request_contact=False, request_location=False,
+                                  request_poll=None, request=True, url=None, switch_inline_query=None,
+                                  switch_inline_query_current_chat=None, callback_data=None)
+buttonmain1.request = "/search"
+buttonmain2 = KeyboardButton('📝', request_contact=False, request_location=False,
+                                  request_poll=None, request=True, url=None, switch_inline_query=None,
+                                  switch_inline_query_current_chat=None, callback_data=None)
+buttonmain2.request = "/my"
+buttonmain3 = KeyboardButton('🆘', request_contact=False, request_location=False,
+                                  request_poll=None, request=True, url=None, switch_inline_query=None,
+                                  switch_inline_query_current_chat=None, callback_data=None)
+buttonmain3.request = "/help"
+
+keboardmain.add(buttonmain1).insert(buttonmain2).insert(buttonmain3)
 
 none_keyboard = InlineKeyboardMarkup()

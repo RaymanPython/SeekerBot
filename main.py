@@ -189,9 +189,11 @@ async def photos_answer(message: types.Message, state: ClientStorage) -> None:
         if limit_photo == 0:
             await state.finish()
             if count_photo == lenphoto:
-                await message.answer("Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился для анкеты.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+                await message.answer("Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился для анкеты.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!",
+                                         reply_markup=keyboards.keboardmain)
             else:
-                await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+                await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!",
+                                         reply_markup=keyboards.keboardmain)
         else:
             await ClientStorage.next()
             await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или завершить заполнение", reply_markup=inlinekeyboardgo())            
@@ -216,9 +218,11 @@ async def photos_add_answer(message: types.Message, state: ClientStorage) -> Non
         if limit_photo == 0:
             await state.finish()
             if count_photo == lenphoto:
-                await message.answer("Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился для анкеты.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+                await message.answer("Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился для анкеты.\n Теперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!",
+                                         reply_markup=keyboards.keboardmain)
             else:
-                await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\nТеперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!")
+                await message.answer(f"Спасибо Вы заполнили Вашу анкету! Лимит фотографий закончился, поэтому мы смогли сохранить только первые {count_photo} из {lenphoto} которые Вы отправили.\nТеперь Вы закончили заполнение анкеты и готовы познать полный функционал бота!",
+                                         reply_markup=keyboards.keboardmain)
         else:
             # await ClientStorage.next()
             await message.answer(f"Спасибо мы сохранили Выши фотографии в базу данных, Вы можете добавить ещё не более чем {limit_photo} фотографий в анкеты или заавершить заполнение", reply_markup=inlinekeyboardgo())
@@ -259,13 +263,16 @@ async def callbake_go(callback_data: types.CallbackQuery, state ):
     await callback_data.message.answer(text="Вы зраегистрировали анкету!", reply_markup=keyboards.comands)
     await bot.edit_message_reply_markup(callback_data.message.chat.id, callback_data.message.message_id,
                                          reply_markup=keyboards.none_keyboard)
+    await callback_data.message.reply("Вот набор команд", reply_markup=keyboards.keboardmain)
+    # await callback_data.message.reply_markup(reply_markup=keyboards.keboardmain)
 
 
 @dp.callback_query_handler()
 async def vote_callbake(callback: types.CallbackQuery) -> None: 
     debug.debug()
     if callback.data not in ["my", "search", "help"]:
-        await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=keyboards.none_keyboard)
+        await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id,
+                                         reply_markup=keyboards.keboardmain)
     if callback.data.startswith("like"):
         await callback.answer(text="Ура! Бот отправил лайк")
         await ankets_show1(callback.message.chat.id, int(callback.data.split("_")[1]))
@@ -293,13 +300,25 @@ async def my(message: types.Message) -> None:
     debug.debug()
     data = await get_user_data(message.chat.id)
     await send_media(message.chat.id, data)
-    await message.answer(defs.string_about_user(data))
+    await message.answer(defs.string_about_user(data),
+                                         reply_markup=keyboards.keboardmain)
 
 
 # Обработка команды /help
 @dp.message_handler(commands=['help'])
 async def help_command(message: types.Message):
-    await message.reply(texts.HELP_START, parse_mode=types.ParseMode.HTML)
+    await message.reply(texts.HELP_START, parse_mode=types.ParseMode.HTML,
+                                         reply_markup=keyboards.keboardmain)
+
+
+@dp.message_handler()
+async def text_defs(message: types.Message) -> None:
+    if message.text == "🔎":
+        await search(message)
+    elif message.text == "🆘":
+        await help_command(message)
+    elif message.text == "📝":
+        await my(message)
 
 
 # обработка /search поиска анкеты ------

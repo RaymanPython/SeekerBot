@@ -23,7 +23,7 @@ async def user_start(user_id):
     if flag == 1:
          async with aiosqlite.connect(DATABASE_NAME) as db:
             # await db.execute(f"INSERT INTO users (user_id) VALUES ({str(user_id)})")
-            await db.execute(f"UPDATE users SET index_ankket=0 WHERE user_id=?", (user_id))
+            await db.execute(f"UPDATE users SET index_ankket=0 WHERE user_id={str(user_id)}")
             return True
     else:
         async with aiosqlite.connect(DATABASE_NAME) as db:
