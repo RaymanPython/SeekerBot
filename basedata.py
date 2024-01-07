@@ -157,7 +157,7 @@ async def search_in_basedata(user_id):
     async with aiosqlite.connect(DATABASE_NAME) as db:
         await db.execute("UPDATE users SET index_ankket = ? WHERE user_id = ?", (str(k), user_id))
         await db.commit()
-    if len(user_data) >= k:
+    if (not user_data is None) and len(user_data) >= k:
         return user_data[-1][0]
     # await sleep_update(user_id)
     return None
