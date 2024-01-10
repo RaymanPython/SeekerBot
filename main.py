@@ -272,6 +272,9 @@ async def vote_callbake(callback: types.CallbackQuery) -> None:
     debug.debug()
     if callback.data not in ["my", "search", "help"]:
         await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id,
+                                         reply_markup=keyboards.none_keyboard)
+    else:
+        await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id,
                                          reply_markup=keyboards.keboardmain)
     if callback.data.startswith("like"):
         await callback.answer(text="Ура! Бот отправил лайк")
