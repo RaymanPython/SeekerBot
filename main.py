@@ -41,6 +41,9 @@ async def errors_handler(update, exception):
     return True
 
 
+async def keuboard_helpng(message: types.Message):
+    await message.reply(reply_markup=keyboards.keboardmain)
+
 # Класс хранения состояний
 class ClientStorage(StatesGroup):
     start = State()
@@ -274,12 +277,18 @@ async def vote_callbake(callback: types.CallbackQuery) -> None:
         await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id,
                                          reply_markup=keyboards.none_keyboard)
     else:
-        await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id,
-                                         reply_markup=keyboards.keboardmain)
+        pass
+        # await bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id,
+        #                                  reply_markup=keyboards.keboardmain)
     if callback.data.startswith("like"):
-        await callback.answer(text="Ура! Бот отправил лайк")
-        await ankets_show1(callback.message.chat.id, int(callback.data.split("_")[1]))
+        try: 
+            await ankets_show1(callback.message.chat.id, int(callback.data.split("_")[1]))
+        except:
+            await callback.answer(text="Увы, пользователь забокировал бота")
+        else:
+            await callback.answer(text="Ура! Бот отправил лайк")
         await search(callback.message)
+       
     if callback.data.startswith("like1"):
         await callback.answer(text="Ура! Бот отправил лайк")
         await ankets_show2(callback.message.chat.id, int(callback.data.split("_")[1]))

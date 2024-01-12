@@ -60,7 +60,7 @@ buttonbool2 = KeyboardButton('Нет')
 keboardbool.add(buttonbool1).insert(buttonbool2)
 
 
-keboardmain = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True) # default - False
+keboardmain = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False) # default - False
 buttonmain1 = KeyboardButton('🔎', request_contact=False, request_location=False,
                                   request_poll=None, request=True, url=None, switch_inline_query=None,
                                   switch_inline_query_current_chat=None, callback_data=None)
