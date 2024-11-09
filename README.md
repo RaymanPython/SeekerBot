@@ -4,7 +4,7 @@
 
 к примеру
 
-BOT_TOKEN=6786395117:AAH0G5Z1dNrC6UvofWi5vROdi0UGOmzVfvU
+BOT_TOKEN=
 
 DATABASE_NAME=base.db
 
